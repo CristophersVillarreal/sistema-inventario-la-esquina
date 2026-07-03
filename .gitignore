@@ -1,0 +1,22 @@
+# Dependencias (se regeneran con npm install)
+backend/node_modules/
+node_modules/
+
+# Variables de entorno (datos locales, no subir)
+backend/.env
+.env
+
+# Logs y temporales
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# Configuración local del editor / herramientas
+.claude/
+.vscode/
+
+# Capturas / evidencia (no forman parte del proyecto)
+captura*.jpg
+captura*.png
+evidencia*
