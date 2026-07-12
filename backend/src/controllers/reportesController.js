@@ -22,6 +22,13 @@ const ReportesController = {
     const productos = await ReporteModel.stockBajo();
     return res.json({ productos });
   },
+
+  /* GET /api/reportes/vencimientos?dias=30 */
+  async vencimientos(req, res) {
+    const dias = Number(req.query.dias) || 30;
+    const productos = await ReporteModel.vencimientos(dias);
+    return res.json({ umbral_dias: dias, productos });
+  },
 };
 
 module.exports = ReportesController;

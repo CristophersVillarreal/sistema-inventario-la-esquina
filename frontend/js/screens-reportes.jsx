@@ -57,6 +57,7 @@ const REPORTS = [
   { key: 'inv',  icon: 'box',    color: '#1e3a8a', bg: '#eef2ff', title: 'Reporte General de Inventario', desc: 'Resumen completo del stock, valor y categorías de productos.' },
   { key: 'ventas', icon: 'cart', color: '#059669', bg: '#ecfdf5', title: 'Reporte de Ventas', desc: 'Ventas totales, promedio por venta y métodos de pago.' },
   { key: 'stock', icon: 'warn',  color: '#dc2626', bg: '#fef2f2', title: 'Stock Bajo', desc: 'Productos con pocas unidades que requieren reposición urgente.' },
+  { key: 'venc', icon: 'cal',    color: '#ea580c', bg: '#fff7ed', title: 'Productos Próximos a Vencer', desc: 'Productos con fecha de vencimiento cercana en los próximos días.' },
 ];
 
 function Reportes({ products, moves, sales, toast }) {
@@ -164,7 +165,27 @@ function Reportes({ products, moves, sales, toast }) {
     );
   }
 
+  /* ---- 4. Próximos a vencer ---- */
+  if (view === 'venc') return <ReporteVencer active={active} onBack={back} />;
+
   return null;
 }
 
-Object.assign(window, { Reportes, REPORTS });
+function ReporteVencer({ active, onBack }) {
+  const [range, setRange] = useState(30);
+  const list = active.filter(p => p.expiry).map(p => ({ ...p, d: daysUntil(p.expiry) })).filter(p => p.d <= range).sort((a, b) => a.d - b.d);
+  return (
+    <div className="stack" style={{ gap: 18 }}>
+      <ReportHeader title="Productos Próximos a Vencer" sub={`${list.length} productos en el rango seleccionado`} onBack={onBack} actions={<button className="btn btn--sm" onClick={() => exportarReportePDF('REPORTE DE PRODUCTOS PRÓXIMOS A VENCER', ['Código', 'Producto', 'Categoría', 'Vencimiento', 'Días restantes', 'Stock'], list.map(p => [p.id, p.name, p.cat, p.expiry, p.d, p.stock]), 'reporte-vencimientos.pdf')}>{I.file({ width: 14, height: 14 })} Exportar PDF</button>} />
+      <div className="card"><div className="row-wrap"><span className="muted" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>{I.cal({ width: 15, height: 15 })} Vencen en</span><div className="chips">{[7, 15, 30, 60].map(r => <button key={r} className={'chip' + (range === r ? ' chip--active' : '')} onClick={() => setRange(r)}>{r} días</button>)}</div></div></div>
+      <div className="card" style={{ padding: 0 }}>
+        <div style={{ padding: 18 }}><div className="section-title" style={{ color: 'var(--amber)', display: 'flex', gap: 8, alignItems: 'center' }}>{I.clock({ width: 16, height: 16 })} Detalle</div></div>
+        <div className="table-wrap"><table className="table"><thead><tr><th>Código</th><th>Producto</th><th>Categoría</th><th>Vencimiento</th><th className="num">Días restantes</th><th className="num">Stock</th></tr></thead>
+          <tbody>{list.length ? list.map(p => <tr key={p.id}><td className="code">{p.id}</td><td className="t-strong">{p.name}</td><td className="muted">{p.cat}</td><td className="muted">{p.expiry}</td><td className="num"><span className={'badge ' + (p.d < 0 ? 'badge--red' : p.d <= 7 ? 'badge--red' : 'badge--amber')}>{p.d < 0 ? `Vencido (${p.d}d)` : p.d + ' días'}</span></td><td className="num">{p.stock}</td></tr>) : <tr><td colSpan="6"><div className="empty">Sin productos en este rango.</div></td></tr>}</tbody>
+        </table></div>
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window, { Reportes, ReporteVencer, REPORTS });

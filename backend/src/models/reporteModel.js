@@ -51,6 +51,22 @@ const ReporteModel = {
     );
     return rows;
   },
+
+  // Productos próximos a vencer.
+  async vencimientos(dias = 30) {
+    const [rows] = await pool.query(
+      `SELECT id, nombre, fecha_caducidad,
+              DATEDIFF(fecha_caducidad, CURDATE()) AS dias_restantes,
+              stock_actual
+         FROM productos
+        WHERE fecha_caducidad IS NOT NULL
+          AND fecha_caducidad >= CURDATE()
+          AND fecha_caducidad <= DATE_ADD(CURDATE(), INTERVAL ? DAY)
+        ORDER BY fecha_caducidad ASC`,
+      [dias]
+    );
+    return rows;
+  },
 };
 
 module.exports = ReporteModel;
