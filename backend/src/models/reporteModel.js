@@ -67,6 +67,33 @@ const ReporteModel = {
     );
     return rows;
   },
+
+  // Resumen de entradas vs salidas (movimientos no anulados) en un rango.
+  async entradasSalidas({ desde = null, hasta = null } = {}) {
+    const cond = ['m.anulado = FALSE'];
+    const params = [];
+    if (desde) { cond.push('m.fecha >= ?'); params.push(desde); }
+    if (hasta) { cond.push('m.fecha <= ?'); params.push(hasta); }
+    const where = `WHERE ${cond.join(' AND ')}`;
+
+    const [resumen] = await pool.query(
+      `SELECT m.tipo, COUNT(*) AS movimientos, SUM(m.cantidad) AS unidades
+         FROM movimientos m ${where}
+        GROUP BY m.tipo`,
+      params
+    );
+    const [detalle] = await pool.query(
+      `SELECT m.id, p.nombre AS producto, m.tipo, m.cantidad,
+              CONCAT(u.nombre, ' ', u.apellido) AS usuario, m.fecha, m.metodo_pago
+         FROM movimientos m
+         JOIN productos p ON p.id = m.producto_id
+         JOIN usuarios  u ON u.id = m.usuario_id
+         ${where}
+        ORDER BY m.fecha DESC`,
+      params
+    );
+    return { resumen, detalle };
+  },
 };
 
 module.exports = ReporteModel;

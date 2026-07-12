@@ -29,6 +29,13 @@ const ReportesController = {
     const productos = await ReporteModel.vencimientos(dias);
     return res.json({ umbral_dias: dias, productos });
   },
+
+  /* GET /api/reportes/entradas-salidas?desde=&hasta= */
+  async entradasSalidas(req, res) {
+    const { desde, hasta } = req.query;
+    const data = await ReporteModel.entradasSalidas({ desde, hasta });
+    return res.json(data);
+  },
 };
 
 module.exports = ReportesController;

@@ -58,6 +58,7 @@ const REPORTS = [
   { key: 'ventas', icon: 'cart', color: '#059669', bg: '#ecfdf5', title: 'Reporte de Ventas', desc: 'Ventas totales, promedio por venta y métodos de pago.' },
   { key: 'stock', icon: 'warn',  color: '#dc2626', bg: '#fef2f2', title: 'Stock Bajo', desc: 'Productos con pocas unidades que requieren reposición urgente.' },
   { key: 'venc', icon: 'cal',    color: '#ea580c', bg: '#fff7ed', title: 'Productos Próximos a Vencer', desc: 'Productos con fecha de vencimiento cercana en los próximos días.' },
+  { key: 'mov',  icon: 'swap',   color: '#7c3aed', bg: '#f5f3ff', title: 'Entradas y Salidas', desc: 'Historial completo de movimientos de inventario por usuario.' },
 ];
 
 function Reportes({ products, moves, sales, toast }) {
@@ -168,6 +169,9 @@ function Reportes({ products, moves, sales, toast }) {
   /* ---- 4. Próximos a vencer ---- */
   if (view === 'venc') return <ReporteVencer active={active} onBack={back} />;
 
+  /* ---- 5. Entradas y salidas ---- */
+  if (view === 'mov') return <ReporteMovimientos moves={moves} onBack={back} />;
+
   return null;
 }
 
@@ -188,4 +192,28 @@ function ReporteVencer({ active, onBack }) {
   );
 }
 
-Object.assign(window, { Reportes, ReporteVencer, REPORTS });
+function ReporteMovimientos({ moves, onBack }) {
+  const [type, setType] = useState('todos');
+  const filtered = moves.filter(m => type === 'todos' || m.type === type);
+  const entradas = moves.filter(m => m.type === 'entrada').reduce((s, m) => s + m.qty, 0);
+  const salidas = moves.filter(m => m.type === 'salida').reduce((s, m) => s + m.qty, 0);
+  return (
+    <div className="stack" style={{ gap: 18 }}>
+      <ReportHeader title="Entradas y Salidas" sub="Historial de movimientos del inventario" onBack={onBack} actions={<button className="btn btn--sm" onClick={() => exportarReportePDF('REPORTE DE ENTRADAS Y SALIDAS', ['Fecha y hora', 'Tipo', 'Producto', 'Cantidad', 'Usuario'], filtered.map(m => [m.date, m.type.toUpperCase(), m.name + ' (' + m.code + ')', (m.type === 'entrada' ? '+' : '-') + m.qty, m.user]), 'reporte-entradas-salidas.pdf')}>{I.file({ width: 14, height: 14 })} Exportar PDF</button>} />
+      <div className="grid-2">
+        <div className="kpi" style={{ borderColor: 'color-mix(in oklch, var(--green) 30%, var(--line))', background: 'var(--green-bg)' }}><div className="kpi__icon" style={{ color: 'var(--green)' }}>{I.down()}</div><div className="kpi__label" style={{ color: 'var(--green)' }}>Total Entradas</div><div className="kpi__value">{entradas} und.</div></div>
+        <div className="kpi" style={{ borderColor: 'color-mix(in oklch, var(--red) 30%, var(--line))', background: 'var(--red-bg)' }}><div className="kpi__icon" style={{ color: 'var(--red)' }}>{I.up()}</div><div className="kpi__label" style={{ color: 'var(--red)' }}>Total Salidas</div><div className="kpi__value">{salidas} und.</div></div>
+      </div>
+      <div className="card"><div className="section-title" style={{ marginBottom: 4 }}>Movimientos por día</div><div className="page-sub" style={{ marginBottom: 16 }}>Entradas vs salidas (semana)</div><GroupedBars data={MOVE_WEEK} keys={[{ key: 'entradas', label: 'Entradas', color: 'var(--green)' }, { key: 'salidas', label: 'Salidas', color: 'var(--red)' }]} /></div>
+      <div className="card"><div className="row-wrap"><span className="muted" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>{I.swap({ width: 15, height: 15 })} Tipo</span><div className="chips">{[['todos', 'Todos'], ['entrada', 'Entradas'], ['salida', 'Salidas']].map(([k, l]) => <button key={k} className={'chip' + (type === k ? ' chip--active' : '')} onClick={() => setType(k)}>{l}</button>)}</div></div></div>
+      <div className="card" style={{ padding: 0 }}>
+        <div style={{ padding: 18 }}><div className="section-title">Historial</div><div className="page-sub">{filtered.length} movimientos</div></div>
+        <div className="table-wrap"><table className="table"><thead><tr><th>Fecha</th><th>Tipo</th><th>Producto</th><th className="num">Cantidad</th><th>Usuario</th></tr></thead>
+          <tbody>{filtered.map(m => <tr key={m.id}><td className="muted">{m.date}</td><td><span className={'badge ' + (m.type === 'entrada' ? 'badge--green' : 'badge--red')}>{m.type === 'entrada' ? I.down({ width: 12, height: 12 }) : I.up({ width: 12, height: 12 })} {m.type.toUpperCase()}</span></td><td className="t-strong">{m.name} <span className="muted">({m.code})</span></td><td className="num" style={{ color: m.type === 'entrada' ? 'var(--green)' : 'var(--red)', fontWeight: 600 }}>{m.type === 'entrada' ? '+' : '−'}{m.qty}</td><td className="muted">{m.user}</td></tr>)}</tbody>
+        </table></div>
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window, { Reportes, ReporteVencer, ReporteMovimientos, REPORTS });
