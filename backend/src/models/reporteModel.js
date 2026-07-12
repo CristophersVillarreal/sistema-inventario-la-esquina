@@ -40,6 +40,17 @@ const ReporteModel = {
     );
     return rows;
   },
+
+  // Productos con stock por debajo (o igual) del mínimo.
+  async stockBajo() {
+    const [rows] = await pool.query(
+      `SELECT id, nombre, stock_actual, stock_minimo
+         FROM productos
+        WHERE stock_actual <= stock_minimo
+        ORDER BY stock_actual ASC`
+    );
+    return rows;
+  },
 };
 
 module.exports = ReporteModel;

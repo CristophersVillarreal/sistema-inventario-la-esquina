@@ -16,6 +16,12 @@ const ReportesController = {
     const metodos = await ReporteModel.ventasPorMetodo({ desde, hasta });
     return res.json({ metodos });
   },
+
+  /* GET /api/reportes/stock-bajo */
+  async stockBajo(req, res) {
+    const productos = await ReporteModel.stockBajo();
+    return res.json({ productos });
+  },
 };
 
 module.exports = ReportesController;

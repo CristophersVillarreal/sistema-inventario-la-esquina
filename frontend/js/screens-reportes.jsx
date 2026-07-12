@@ -56,6 +56,7 @@ function exportarReportePDF(titulo, columnas, filas, archivo) {
 const REPORTS = [
   { key: 'inv',  icon: 'box',    color: '#1e3a8a', bg: '#eef2ff', title: 'Reporte General de Inventario', desc: 'Resumen completo del stock, valor y categorías de productos.' },
   { key: 'ventas', icon: 'cart', color: '#059669', bg: '#ecfdf5', title: 'Reporte de Ventas', desc: 'Ventas totales, promedio por venta y métodos de pago.' },
+  { key: 'stock', icon: 'warn',  color: '#dc2626', bg: '#fef2f2', title: 'Stock Bajo', desc: 'Productos con pocas unidades que requieren reposición urgente.' },
 ];
 
 function Reportes({ products, moves, sales, toast }) {
@@ -135,6 +136,28 @@ function Reportes({ products, moves, sales, toast }) {
           <div style={{ padding: 18 }}><div className="section-title">Ventas registradas</div><div className="page-sub">{sales.length} transacciones</div></div>
           <div className="table-wrap"><table className="table"><thead><tr><th>N° Venta</th><th>Fecha</th><th>Producto</th><th className="num">Cant.</th><th>Método</th><th>Cajero</th><th className="num">Total</th></tr></thead>
             <tbody>{sales.map(s => <tr key={s.id}><td className="code">{s.id}</td><td className="muted">{s.date}</td><td className="t-strong">{s.name}</td><td className="num">{s.qty}</td><td className="muted">{s.method}</td><td className="muted">{s.user}</td><td className="num t-strong">{soles(s.total)}</td></tr>)}</tbody>
+          </table></div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ---- 3. Stock bajo ---- */
+  if (view === 'stock') {
+    const low = active.filter(p => p.stock <= p.min);
+    const crit = low.filter(p => p.stock <= p.min * 0.5);
+    return (
+      <div className="stack" style={{ gap: 18 }}>
+        <ReportHeader title="Stock Bajo" sub={`${low.length} productos requieren reposición`} onBack={back} actions={<button className="btn btn--sm" onClick={() => exportarReportePDF('REPORTE DE STOCK BAJO', ['Código', 'Producto', 'Categoría', 'Stock', 'Mínimo', 'Estado'], low.map(p => [p.id, p.name, p.cat, p.stock, p.min, (p.stock <= p.min * 0.5 ? 'CRÍTICO' : 'BAJO')]), 'reporte-stock-bajo.pdf')}>{I.file({ width: 14, height: 14 })} Generar Reporte PDF</button>} />
+        <div className="kpi-grid">
+          <div className="kpi" style={{ borderColor: 'color-mix(in oklch, var(--red) 30%, var(--line))', background: 'var(--red-bg)' }}><div className="kpi__icon" style={{ color: 'var(--red)' }}>{I.warn()}</div><div className="kpi__label" style={{ color: 'var(--red)' }}>Estado Crítico</div><div className="kpi__value">{crit.length}</div></div>
+          <div className="kpi" style={{ borderColor: 'color-mix(in oklch, var(--amber) 35%, var(--line))', background: 'var(--amber-bg)' }}><div className="kpi__icon" style={{ color: 'var(--amber)' }}>{I.box()}</div><div className="kpi__label" style={{ color: 'var(--amber)' }}>Bajo Nivel</div><div className="kpi__value">{low.length - crit.length}</div></div>
+          <div className="kpi"><div className="kpi__label">Total Afectados</div><div className="kpi__value">{low.length}</div><div className="kpi__sub">De {active.length} productos</div></div>
+        </div>
+        <div className="card" style={{ padding: 0 }}>
+          <div style={{ padding: 18 }}><div className="section-title" style={{ color: 'var(--red)', display: 'flex', gap: 8, alignItems: 'center' }}>{I.warn({ width: 16, height: 16 })} Productos que requieren atención</div></div>
+          <div className="table-wrap"><table className="table"><thead><tr><th>Código</th><th>Producto</th><th>Categoría</th><th className="num">Stock</th><th className="num">Mínimo</th><th>Estado</th></tr></thead>
+            <tbody>{low.length ? low.map(p => <tr key={p.id}><td className="code">{p.id}</td><td className="t-strong">{p.name}</td><td className="muted">{p.cat}</td><td className="num stock-low">{p.stock}</td><td className="num muted">{p.min}</td><td><span className={'badge ' + (p.stock <= p.min * 0.5 ? 'badge--red' : 'badge--amber')}>{p.stock <= p.min * 0.5 ? 'CRÍTICO' : 'BAJO'}</span></td></tr>) : <tr><td colSpan="6"><div className="empty">Sin productos en stock bajo.</div></td></tr>}</tbody>
           </table></div>
         </div>
       </div>

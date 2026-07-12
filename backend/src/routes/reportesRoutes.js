@@ -13,5 +13,6 @@ router.use(verificarToken, soloAdmin);
 
 router.get('/inventario', asyncHandler(ReportesController.inventario));
 router.get('/ventas-por-metodo', asyncHandler(ReportesController.ventasPorMetodo));
+router.get('/stock-bajo', asyncHandler(ReportesController.stockBajo));
 
 module.exports = router;
