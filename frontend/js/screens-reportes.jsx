@@ -14,14 +14,52 @@ function ReportHeader({ title, sub, onBack, actions }) {
   );
 }
 
+/* Genera un PDF limpio (título + tabla de datos) con jsPDF + AutoTable. */
+function exportarReportePDF(titulo, columnas, filas, archivo) {
+  const lib = window.jspdf;
+  if (!lib || !lib.jsPDF) {
+    alert('No se pudo cargar el generador de PDF. Verifica tu conexión a internet e inténtalo de nuevo.');
+    return;
+  }
+  const doc = new lib.jsPDF({ orientation: columnas.length >= 7 ? 'landscape' : 'portrait', unit: 'mm', format: 'a4' });
+
+  // Encabezado del documento
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(15);
+  doc.text(titulo, 14, 16);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(110);
+  doc.text('Minimarket "La Esquina"   ·   Generado: ' + new Date().toLocaleString('es-PE'), 14, 22);
+  doc.setTextColor(0);
+
+  // Tabla de datos
+  doc.autoTable({
+    startY: 28,
+    head: [columnas],
+    body: filas,
+    styles: { fontSize: 8, cellPadding: 2 },
+    headStyles: { fillColor: [30, 58, 138], textColor: 255 },
+    alternateRowStyles: { fillColor: [245, 247, 250] },
+    margin: { left: 14, right: 14 },
+  });
+
+  // Pie: total de registros
+  const y = (doc.lastAutoTable ? doc.lastAutoTable.finalY : 28) + 8;
+  doc.setFontSize(9);
+  doc.setTextColor(90);
+  doc.text('Total de registros: ' + filas.length, 14, y);
+
+  doc.save(archivo);
+}
+
 const REPORTS = [
+  { key: 'inv',  icon: 'box',    color: '#1e3a8a', bg: '#eef2ff', title: 'Reporte General de Inventario', desc: 'Resumen completo del stock, valor y categorías de productos.' },
 ];
 
 function Reportes({ products, moves, sales, toast }) {
   const [view, setView] = useState(null);
   const active = products;
-  const pdf = () => toast('Generando PDF del reporte… (descarga simulada).', 'ok');
-  const xls = () => toast('Exportando a Excel… (descarga simulada).', 'ok');
 
   if (!view) {
     return (
@@ -41,6 +79,36 @@ function Reportes({ products, moves, sales, toast }) {
   }
 
   const back = () => setView(null);
+
+  /* ---- 1. Inventario ---- */
+  if (view === 'inv') {
+    const byCat = CATEGORIES.map(c => ({ name: c, value: active.filter(p => p.cat === c).length, color: catColor(c) }));
+    const topStock = [...active].sort((a, b) => b.stock - a.stock).slice(0, 6).map(p => ({ label: p.name.split(' ').slice(0, 2).join(' '), value: p.stock }));
+    const low = active.filter(p => p.stock <= p.min).length;
+    const exp = active.filter(p => { const d = daysUntil(p.expiry); return d >= 0 && d <= 30; }).length;
+    const val = active.reduce((s, p) => s + p.price * p.stock, 0);
+    return (
+      <div className="stack" style={{ gap: 18 }}>
+        <ReportHeader title="Reporte General de Inventario" sub="Resumen ejecutivo del inventario actual · La Esquina" onBack={back} actions={<button className="btn btn--sm" onClick={() => exportarReportePDF('REPORTE GENERAL DE INVENTARIO', ['Código', 'Producto', 'Categoría', 'Stock', 'Mínimo', 'Precio (S/)', 'Estado'], active.map(p => [p.id, p.name, p.cat, p.stock, p.min, p.price.toFixed(2), stockState(p).label]), 'reporte-inventario.pdf')}>{I.file({ width: 14, height: 14 })} Exportar PDF</button>} />
+        <div className="kpi-grid">
+          <div className="kpi"><div className="kpi__icon">{I.box()}</div><div className="kpi__label">Total de Productos</div><div className="kpi__value">{active.length}</div><div className="kpi__sub">Productos registrados</div></div>
+          <div className="kpi"><div className="kpi__icon" style={{ color: 'var(--red)' }}>{I.warn()}</div><div className="kpi__label">Bajo Stock</div><div className="kpi__value">{low}</div><div className="kpi__sub">Requieren reposición</div></div>
+          <div className="kpi"><div className="kpi__icon" style={{ color: 'var(--amber)' }}>{I.clock()}</div><div className="kpi__label">Próximos a Vencer</div><div className="kpi__value">{exp}</div><div className="kpi__sub">En los próximos 30 días</div></div>
+          <div className="kpi kpi--dark"><div className="kpi__icon">{I.money()}</div><div className="kpi__label">Valor del Inventario</div><div className="kpi__value">{soles(val)}</div><div className="kpi__sub">Valor total estimado</div></div>
+        </div>
+        <div className="grid-2">
+          <div className="card"><div className="section-title" style={{ marginBottom: 4 }}>Distribución por categoría</div><div className="page-sub" style={{ marginBottom: 14 }}>Cantidad de productos por categoría</div><Donut data={byCat} /></div>
+          <div className="card"><div className="section-title" style={{ marginBottom: 4 }}>Productos con mayor stock</div><div className="page-sub" style={{ marginBottom: 14 }}>Top 6 unidades en almacén</div><VBars data={topStock} /></div>
+        </div>
+        <div className="card" style={{ padding: 0 }}>
+          <div style={{ padding: 18 }}><div className="section-title">Detalle de productos</div><div className="page-sub">{active.length} resultados</div></div>
+          <div className="table-wrap"><table className="table"><thead><tr><th>Código</th><th>Producto</th><th>Categoría</th><th className="num">Stock</th><th className="num">Mínimo</th><th>Estado</th></tr></thead>
+            <tbody>{active.map(p => { const st = stockState(p); return <tr key={p.id}><td className="code">{p.id}</td><td className="t-strong">{p.name}</td><td className="muted">{p.cat}</td><td className={'num ' + (p.stock <= p.min ? 'stock-low' : '')}>{p.stock}</td><td className="num muted">{p.min}</td><td><span className={'badge ' + st.cls}>{st.label}</span></td></tr>; })}</tbody>
+          </table></div>
+        </div>
+      </div>
+    );
+  }
 
   return null;
 }

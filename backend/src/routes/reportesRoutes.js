@@ -11,4 +11,6 @@ const router = express.Router();
 
 router.use(verificarToken, soloAdmin);
 
+router.get('/inventario', asyncHandler(ReportesController.inventario));
+
 module.exports = router;
