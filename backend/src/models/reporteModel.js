@@ -20,6 +20,26 @@ const ReporteModel = {
     );
     return { resumen: tot[0], detalle: rows };
   },
+
+  // Ventas por método de pago (para el donut del frontend).
+  async ventasPorMetodo({ desde = null, hasta = null } = {}) {
+    const cond = ["m.tipo = 'salida'", 'm.anulado = FALSE', 'm.metodo_pago IS NOT NULL'];
+    const params = [];
+    if (desde) { cond.push('m.fecha >= ?'); params.push(desde); }
+    if (hasta) { cond.push('m.fecha <= ?'); params.push(hasta); }
+
+    const [rows] = await pool.query(
+      `SELECT m.metodo_pago,
+              COUNT(*) AS operaciones,
+              ROUND(SUM(m.cantidad * p.precio), 2) AS total
+         FROM movimientos m
+         JOIN productos p ON p.id = m.producto_id
+        WHERE ${cond.join(' AND ')}
+        GROUP BY m.metodo_pago`,
+      params
+    );
+    return rows;
+  },
 };
 
 module.exports = ReporteModel;

@@ -55,6 +55,7 @@ function exportarReportePDF(titulo, columnas, filas, archivo) {
 
 const REPORTS = [
   { key: 'inv',  icon: 'box',    color: '#1e3a8a', bg: '#eef2ff', title: 'Reporte General de Inventario', desc: 'Resumen completo del stock, valor y categorías de productos.' },
+  { key: 'ventas', icon: 'cart', color: '#059669', bg: '#ecfdf5', title: 'Reporte de Ventas', desc: 'Ventas totales, promedio por venta y métodos de pago.' },
 ];
 
 function Reportes({ products, moves, sales, toast }) {
@@ -104,6 +105,36 @@ function Reportes({ products, moves, sales, toast }) {
           <div style={{ padding: 18 }}><div className="section-title">Detalle de productos</div><div className="page-sub">{active.length} resultados</div></div>
           <div className="table-wrap"><table className="table"><thead><tr><th>Código</th><th>Producto</th><th>Categoría</th><th className="num">Stock</th><th className="num">Mínimo</th><th>Estado</th></tr></thead>
             <tbody>{active.map(p => { const st = stockState(p); return <tr key={p.id}><td className="code">{p.id}</td><td className="t-strong">{p.name}</td><td className="muted">{p.cat}</td><td className={'num ' + (p.stock <= p.min ? 'stock-low' : '')}>{p.stock}</td><td className="num muted">{p.min}</td><td><span className={'badge ' + st.cls}>{st.label}</span></td></tr>; })}</tbody>
+          </table></div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ---- 2. Ventas ---- */
+  if (view === 'ventas') {
+    const totalV = sales.reduce((s, x) => s + x.total, 0);
+    const avg = sales.length ? totalV / sales.length : 0;
+    const byProd = {}; sales.forEach(s => byProd[s.name] = (byProd[s.name] || 0) + s.qty);
+    const top = Object.entries(byProd).sort((a, b) => b[1] - a[1])[0];
+    const payTotals = METHODS.map(m => ({ name: m, value: sales.filter(s => s.method === m).reduce((a, s) => a + s.total, 0), color: m === 'Efectivo' ? 'var(--green)' : m === 'Yape' ? 'var(--blue)' : 'var(--amber)' }));
+    return (
+      <div className="stack" style={{ gap: 18 }}>
+        <ReportHeader title="Reporte de Ventas" sub="Análisis comercial · La Esquina" onBack={back} actions={<button className="btn btn--sm" onClick={() => exportarReportePDF('REPORTE GENERAL DE VENTAS', ['N° Venta', 'Fecha y hora', 'Producto', 'Cant.', 'Método', 'Cajero', 'Total (S/)'], sales.map(s => [s.id, s.date, s.name, s.qty, s.method, s.user, s.total.toFixed(2)]), 'reporte-ventas.pdf')}>{I.file({ width: 14, height: 14 })} Exportar PDF</button>} />
+        <div className="kpi-grid">
+          <div className="kpi"><div className="kpi__icon" style={{ color: 'var(--green)' }}>{I.money()}</div><div className="kpi__label">Ventas Totales</div><div className="kpi__value">{soles(totalV)}</div><div className="kpi__sub">{sales.length} transacciones</div></div>
+          <div className="kpi"><div className="kpi__icon">{I.receipt()}</div><div className="kpi__label">Promedio por Venta</div><div className="kpi__value">{soles(avg)}</div></div>
+          <div className="kpi"><div className="kpi__icon" style={{ color: 'var(--amber)' }}>{I.trophy()}</div><div className="kpi__label">Más Vendido</div><div className="kpi__value" style={{ fontSize: 19 }}>{top ? top[0] : '—'}</div><div className="kpi__sub">{top ? top[1] + ' unidades' : ''}</div></div>
+          <div className="kpi kpi--dark"><div className="kpi__icon">{I.money()}</div><div className="kpi__label">Métodos de Pago</div><div className="kpi__value">{METHODS.length}</div><div className="kpi__sub">Efectivo · Yape · Tarjeta</div></div>
+        </div>
+        <div className="grid-2">
+          <div className="card"><div className="section-title" style={{ marginBottom: 4 }}>Tendencia semanal</div><div className="page-sub" style={{ marginBottom: 14 }}>Ventas (S/) por día</div><LineChart values={SALES_WEEK} labels={WEEK} /></div>
+          <div className="card"><div className="section-title" style={{ marginBottom: 4 }}>Métodos de pago</div><div className="page-sub" style={{ marginBottom: 14 }}>Distribución por monto</div><Donut data={payTotals} /></div>
+        </div>
+        <div className="card" style={{ padding: 0 }}>
+          <div style={{ padding: 18 }}><div className="section-title">Ventas registradas</div><div className="page-sub">{sales.length} transacciones</div></div>
+          <div className="table-wrap"><table className="table"><thead><tr><th>N° Venta</th><th>Fecha</th><th>Producto</th><th className="num">Cant.</th><th>Método</th><th>Cajero</th><th className="num">Total</th></tr></thead>
+            <tbody>{sales.map(s => <tr key={s.id}><td className="code">{s.id}</td><td className="muted">{s.date}</td><td className="t-strong">{s.name}</td><td className="num">{s.qty}</td><td className="muted">{s.method}</td><td className="muted">{s.user}</td><td className="num t-strong">{soles(s.total)}</td></tr>)}</tbody>
           </table></div>
         </div>
       </div>
