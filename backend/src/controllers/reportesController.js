@@ -36,6 +36,13 @@ const ReportesController = {
     const data = await ReporteModel.entradasSalidas({ desde, hasta });
     return res.json(data);
   },
+
+  /* GET /api/reportes/mas-vendidos?limite=10 */
+  async masVendidos(req, res) {
+    const limite = Number(req.query.limite) || 10;
+    const productos = await ReporteModel.masVendidos({ limite });
+    return res.json({ productos });
+  },
 };
 
 module.exports = ReportesController;

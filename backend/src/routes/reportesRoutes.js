@@ -16,5 +16,6 @@ router.get('/ventas-por-metodo', asyncHandler(ReportesController.ventasPorMetodo
 router.get('/stock-bajo', asyncHandler(ReportesController.stockBajo));
 router.get('/vencimientos', asyncHandler(ReportesController.vencimientos));
 router.get('/entradas-salidas', asyncHandler(ReportesController.entradasSalidas));
+router.get('/mas-vendidos', asyncHandler(ReportesController.masVendidos));
 
 module.exports = router;

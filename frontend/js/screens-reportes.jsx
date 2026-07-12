@@ -59,6 +59,7 @@ const REPORTS = [
   { key: 'stock', icon: 'warn',  color: '#dc2626', bg: '#fef2f2', title: 'Stock Bajo', desc: 'Productos con pocas unidades que requieren reposición urgente.' },
   { key: 'venc', icon: 'cal',    color: '#ea580c', bg: '#fff7ed', title: 'Productos Próximos a Vencer', desc: 'Productos con fecha de vencimiento cercana en los próximos días.' },
   { key: 'mov',  icon: 'swap',   color: '#7c3aed', bg: '#f5f3ff', title: 'Entradas y Salidas', desc: 'Historial completo de movimientos de inventario por usuario.' },
+  { key: 'top',  icon: 'trophy', color: '#d97706', bg: '#fffbeb', title: 'Productos Más Vendidos', desc: 'Ranking de los 10 productos con mayor rotación e ingresos.' },
 ];
 
 function Reportes({ products, moves, sales, toast }) {
@@ -171,6 +172,30 @@ function Reportes({ products, moves, sales, toast }) {
 
   /* ---- 5. Entradas y salidas ---- */
   if (view === 'mov') return <ReporteMovimientos moves={moves} onBack={back} />;
+
+  /* ---- 6. Más vendidos ---- */
+  if (view === 'top') {
+    const data = SEED_TOPSELL;
+    const totalUnits = data.reduce((s, x) => s + x.units, 0);
+    const totalIncome = data.reduce((s, x) => s + x.income, 0);
+    return (
+      <div className="stack" style={{ gap: 18 }}>
+        <ReportHeader title="Productos Más Vendidos" sub="Top 10 del mes · La Esquina" onBack={back} actions={<button className="btn btn--sm" onClick={() => exportarReportePDF('REPORTE DE PRODUCTOS MÁS VENDIDOS', ['#', 'Producto', 'Categoría', 'Cant. vendida', 'Ingresos (S/)'], data.map((d, i) => [i + 1, d.name, d.cat, d.units, d.income.toFixed(2)]), 'reporte-mas-vendidos.pdf')}>{I.file({ width: 14, height: 14 })} Exportar PDF</button>} />
+        <div className="kpi-grid">
+          <div className="kpi"><div className="kpi__icon" style={{ color: 'var(--amber)' }}>{I.trophy()}</div><div className="kpi__label">Líder</div><div className="kpi__value" style={{ fontSize: 21 }}>{data[0].name}</div><div className="kpi__sub">{data[0].units} unidades</div></div>
+          <div className="kpi"><div className="kpi__icon">{I.box()}</div><div className="kpi__label">Unidades Vendidas</div><div className="kpi__value">{totalUnits.toLocaleString('es-PE')}</div><div className="kpi__sub">Top 10</div></div>
+          <div className="kpi kpi--dark"><div className="kpi__icon">{I.trend()}</div><div className="kpi__label">Ingresos Generados</div><div className="kpi__value">{soles(totalIncome)}</div><div className="kpi__sub">Acumulado</div></div>
+        </div>
+        <div className="card"><div className="section-title" style={{ marginBottom: 4 }}>Ranking visual</div><div className="page-sub" style={{ marginBottom: 16 }}>Unidades vendidas por producto</div><HBars data={data.map(d => ({ label: d.name, value: d.units }))} /></div>
+        <div className="card" style={{ padding: 0 }}>
+          <div style={{ padding: 18 }}><div className="section-title">Detalle del ranking</div></div>
+          <div className="table-wrap"><table className="table"><thead><tr><th>#</th><th>Producto</th><th>Categoría</th><th className="num">Cant. vendida</th><th className="num">Ingresos</th></tr></thead>
+            <tbody>{data.map((d, i) => <tr key={d.code}><td><span className="badge badge--muted" style={{ width: 22, height: 22, justifyContent: 'center', padding: 0, borderRadius: '50%' }}>{i + 1}</span></td><td className="t-strong">{d.name}</td><td className="muted">{d.cat}</td><td className="num">{d.units}</td><td className="num t-strong">{soles(d.income)}</td></tr>)}</tbody>
+          </table></div>
+        </div>
+      </div>
+    );
+  }
 
   return null;
 }

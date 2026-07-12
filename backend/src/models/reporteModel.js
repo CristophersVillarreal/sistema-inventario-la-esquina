@@ -94,6 +94,22 @@ const ReporteModel = {
     );
     return { resumen, detalle };
   },
+
+  // Más vendidos (salidas no anuladas) por producto.
+  async masVendidos({ limite = 10 } = {}) {
+    const [rows] = await pool.query(
+      `SELECT p.id, p.nombre, SUM(m.cantidad) AS unidades_vendidas,
+              ROUND(SUM(m.cantidad * p.precio), 2) AS ingreso_estimado
+         FROM movimientos m
+         JOIN productos p ON p.id = m.producto_id
+        WHERE m.tipo = 'salida' AND m.anulado = FALSE
+        GROUP BY p.id, p.nombre
+        ORDER BY unidades_vendidas DESC
+        LIMIT ?`,
+      [Number(limite)]
+    );
+    return rows;
+  },
 };
 
 module.exports = ReporteModel;
